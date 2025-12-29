@@ -3,6 +3,9 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
+            HomeView()
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+            
             CollectionView()
                 .tabItem { Label("Collection", systemImage: "paintbrush") }
 
