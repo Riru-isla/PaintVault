@@ -84,7 +84,7 @@ struct ImportCSVView: View {
         """
         brand,range,type,manufacturerCode,name,barcode,collectionQuantity
         Vallejo,Game Color,Base,72.001,Dead White,,1
-        Citadel,Base,Base,BASE001,Mephiston Red,,0
+        AK Interactive,3rd Gen,Acrylic Color,AK11187,Strong Dark Blue,,1
         """
     }
 
@@ -127,7 +127,16 @@ struct ImportCSVView: View {
             return ImportReport(paintsUpserted: 0, collectionUpdated: 0)
         }
 
-        let header = parseCSVLine(lines[0]).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        // Strip BOM that may appear at the start of UTF-8 files
+        let headerLineRaw = lines[0].replacingOccurrences(of: "\u{FEFF}", with: "")
+        // Detect delimiter from the header line (favor ';' if commas are absent)
+        let delimiter: Character = {
+            if headerLineRaw.contains(";") && !headerLineRaw.contains(",") { return ";" }
+            return ","
+        }()
+
+        let header = parseCSVLine(headerLineRaw, delimiter: delimiter)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let index = indexMap(header)
 
         // Required columns
@@ -141,7 +150,7 @@ struct ImportCSVView: View {
         var collectionUpdated = 0
 
         for line in lines.dropFirst() {
-            let cols = parseCSVLine(line)
+            let cols = parseCSVLine(line, delimiter: delimiter)
 
             let brandStr = value(cols, index, "brand")
             let range = value(cols, index, "range")
@@ -248,8 +257,8 @@ struct ImportCSVView: View {
         return v.isEmpty ? nil : v
     }
 
-    /// Minimal CSV line parser supporting quoted fields (commas inside quotes).
-    private func parseCSVLine(_ line: String) -> [String] {
+    /// Minimal CSV line parser supporting quoted fields and a configurable delimiter.
+    private func parseCSVLine(_ line: String, delimiter: Character = ",") -> [String] {
         var result: [String] = []
         var current = ""
         var inQuotes = false
@@ -273,7 +282,7 @@ struct ImportCSVView: View {
                 }
             }
 
-            if ch == "," && !inQuotes {
+            if ch == delimiter && !inQuotes {
                 result.append(current)
                 current = ""
                 i += 1
@@ -329,3 +338,4 @@ struct CSVDocument: FileDocument {
         FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }
+

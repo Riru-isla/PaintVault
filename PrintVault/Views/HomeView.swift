@@ -8,6 +8,8 @@ struct HomeView: View {
     @Query(sort: [SortDescriptor(\Paint.name)])
     private var allPaints: [Paint]
 
+    @Query private var inventoryItems: [InventoryItem]
+    
     // UI state
     @State private var searchText: String = ""
     @State private var showingAddPaint = false
@@ -76,20 +78,39 @@ struct HomeView: View {
                             NavigationLink {
                                 PaintDetailView(paint: paint)
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(paint.name)
-                                        .font(.headline)
+                                let flags = inventoryFlags(for: paint)
 
-                                    Text("\(paint.brand.rawValue) • \(paint.range) • \(paint.type.rawValue)")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(paint.name)
+                                            .font(.headline)
 
-                                    Text(paint.manufacturerCode)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        Text("\(paint.brand.rawValue) • \(paint.range) • \(paint.type.rawValue)")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(paint.manufacturerCode)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    HStack(spacing: 6) {
+                                        if flags.inCollection {
+                                            Image(systemName: "checkmark.square.fill")
+                                                .foregroundStyle(.green)
+                                        }
+                                        if flags.inWishlist {
+                                            Image(systemName: "heart.fill")
+                                                .foregroundStyle(.red)
+                                        }
+                                    }
+                                    .imageScale(.large)
                                 }
                                 .padding(.vertical, 4)
                             }
+
                             // 👉 Swipe RIGHT → Add to Collection
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button {
@@ -133,6 +154,30 @@ struct HomeView: View {
         }
     }
 
+    
+    private struct PaintInventoryFlags {
+        let inCollection: Bool
+        let inWishlist: Bool
+    }
+
+    private func inventoryFlags(for paint: Paint) -> PaintInventoryFlags {
+        // Match inventory items to this paint using the same identity fields we use elsewhere
+        let brand = paint.brandRaw
+        let range = paint.range
+        let code = paint.manufacturerCode
+
+        let itemsForPaint = inventoryItems.filter { item in
+            item.paint.brandRaw == brand &&
+            item.paint.range == range &&
+            item.paint.manufacturerCode == code
+        }
+
+        return PaintInventoryFlags(
+            inCollection: itemsForPaint.contains { $0.status == .owned },
+            inWishlist: itemsForPaint.contains { $0.status == .wishlist }
+        )
+    }
+
     // MARK: - Quick add logic (used by swipe actions)
 
     private func quickAdd(paint: Paint, status: InventoryStatus) {
@@ -145,7 +190,7 @@ struct HomeView: View {
 
             switch outcome {
             case .addedNew:
-                showToast(status == .owned ? "Added to Collection ✅" : "Added to Wishlist ✅")
+                showToast(status == .owned ? "Added to Collection ✅" : "Added to Wishlist ❤️")
             case .incremented(let qty):
                 showToast("Already there — quantity: \(qty)")
             }

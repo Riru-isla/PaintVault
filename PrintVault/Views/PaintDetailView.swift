@@ -3,7 +3,9 @@ import SwiftData
 
 struct PaintDetailView: View {
     @Environment(\.modelContext) private var modelContext
-
+    
+    @Query private var inventoryItems: [InventoryItem]
+    
     let paint: Paint
 
     // Toast state (no extra taps)
@@ -30,6 +32,23 @@ struct PaintDetailView: View {
                     }
                 }
 
+                Section("Status") {
+                    if flags.inCollection {
+                        Label("In collection", systemImage: "checkmark.square.fill")
+                            .foregroundStyle(.green)
+                    }
+                    if flags.inWishlist {
+                        Label("In wishlist", systemImage: "heart.fill")
+                            .foregroundStyle(.red)
+                    }
+
+                    if !flags.inCollection && !flags.inWishlist {
+                        Text("Not in collection or wishlist")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                
                 Section("Actions") {
                     Button {
                         addToInventory(status: .owned)
@@ -65,7 +84,7 @@ struct PaintDetailView: View {
 
             switch outcome {
             case .addedNew:
-                showToast(status == .owned ? "Added to Collection ✅" : "Added to Wishlist ✅")
+                showToast(status == .owned ? "Added to Collection ✅" : "Added to Wishlist ❤️")
             case .incremented(let qty):
                 showToast("Already there — quantity: \(qty)")
             }
@@ -87,4 +106,27 @@ struct PaintDetailView: View {
             }
         }
     }
+    
+    private struct PaintInventoryFlags {
+        let inCollection: Bool
+        let inWishlist: Bool
+    }
+
+    private var flags: PaintInventoryFlags {
+        let brand = paint.brandRaw
+        let range = paint.range
+        let code = paint.manufacturerCode
+
+        let itemsForPaint = inventoryItems.filter { item in
+            item.paint.brandRaw == brand &&
+            item.paint.range == range &&
+            item.paint.manufacturerCode == code
+        }
+
+        return PaintInventoryFlags(
+            inCollection: itemsForPaint.contains { $0.status == .owned },
+            inWishlist: itemsForPaint.contains { $0.status == .wishlist }
+        )
+    }
+
 }
