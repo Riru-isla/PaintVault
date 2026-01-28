@@ -71,6 +71,7 @@ The app evolves iteratively as features and structure are refined.
 
 ## 👤 About the author
 
-Created by **Diego Isla** — Senior Backend Engineer · iOS Enthusiast · Hobbyist.  
+Created by **Diego Isla** — Senior Backend Engineer · iOS Enthusiast · Hobbyist.
+
 If you’re a recruiter or hiring manager, this repository is meant to be **read, not just run**.  
 Feel free to explore the codebase and reach out — feedback is always welcome.
